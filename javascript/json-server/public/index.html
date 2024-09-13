@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Product Cards</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #f0f0f0;
+        margin: 0;
+        padding: 20px;
+      }
+
+      .container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: calc(100vh - 200px);
+      }
+
+      .products {
+        display: flex;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        gap: 20px;
+        padding-bottom: 10px;
+      }
+
+      .products::-webkit-scrollbar {
+        height: 8px;
+      }
+
+      .products::-webkit-scrollbar-thumb {
+        background-color: #888;
+        border-radius: 4px;
+      }
+
+      .card {
+        background-color: white;
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        width: 300px;
+        min-width: 300px;
+        margin: 10px 0;
+        padding: 20px;
+        text-align: center;
+        flex-shrink: 0;
+        cursor: pointer;
+        transition:
+          transform 0.3s ease,
+          box-shadow 0.3s ease;
+      }
+
+      .card:hover {
+        transform: scale(1.05);
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+      }
+
+      .card h2 {
+        font-size: 1.5rem;
+        margin: 0 0 10px;
+      }
+
+      .card p {
+        color: #555;
+        font-size: 1rem;
+        margin-bottom: 15px;
+      }
+
+      .price {
+        font-size: 1.2rem;
+        font-weight: bold;
+        color: #27ae60;
+      }
+
+      .category {
+        background-color: #3498db;
+        color: white !important;
+        padding: 5px 10px;
+        border-radius: 20px;
+        display: inline-block;
+        font-size: 0.9rem;
+        margin-bottom: 15px;
+      }
+
+      .stock {
+        font-size: 0.9rem;
+        color: #e74c3c;
+      }
+
+      .title {
+        text-align: center;
+      }
+    </style>
+  </head>
+  <body>
+    <h1 class="title">Products</h1>
+    <div class="container">
+      <div class="products" id="product-list"></div>
+    </div>
+
+    <script>
+      async function fetchProducts() {
+        try {
+          const response = await fetch("http://localhost:3000/products");
+          const products = await response.json();
+          displayProducts(products);
+        } catch (error) {
+          console.error("Error fetching products:", error);
+        }
+      }
+
+      function displayProducts(products) {
+        const productList = document.getElementById("product-list");
+        products.forEach((product) => {
+          const card = document.createElement("div");
+          card.classList.add("card");
+
+          card.innerHTML = `
+          <h2>${product.name}</h2>
+          <p class="category">${product.category}</p>
+          <p>${product.description}</p>
+          <p class="price">$${product.price}</p>
+          <p class="stock">In Stock: ${product.stock}</p>
+        `;
+
+          productList.appendChild(card);
+        });
+      }
+
+      // Fetch and display products on page load
+      fetchProducts();
+    </script>
+  </body>
+</html>
