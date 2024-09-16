@@ -1,0 +1,12 @@
+{
+  "name": "mini-jest",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "",
+  "scripts": {
+    "test": "node index.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
