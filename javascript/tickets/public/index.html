@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Tickets</title>
+    <style>
+      /* Base grid for desktop (3 columns) */
+      #events-list {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        /* 3 columns */
+        gap: 20px;
+      }
+
+      /* For small screens (mobile), switch to 1 column */
+      @media only screen and (max-width: 600px) {
+        #events-list {
+          grid-template-columns: 1fr;
+          /* 1 column for smaller screens */
+        }
+      }
+
+      /* For medium screens (tablet), switch to 2 columns */
+      @media only screen and (min-width: 601px) and (max-width: 900px) {
+        #events-list {
+          grid-template-columns: repeat(2, 1fr);
+          /* 2 columns for tablet */
+        }
+      }
+
+      /* Event card styling */
+      #events-list div {
+        border: 1px solid #ddd;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        transition: transform 0.3s ease;
+        height: 325px;
+      }
+
+      #events-list div:hover {
+        transform: translateY(-10px);
+      }
+
+      #events-list img {
+        width: 100%;
+        height: 50%;
+      }
+
+      .buy {
+        padding: 10px;
+        width: 100px;
+        color: white;
+        background-color: #090561;
+      }
+
+      .favorite-icon {
+        right: 0;
+        /* Position the icon to the far right */
+        font-size: 24px;
+        cursor: pointer;
+        color: #ff0000;
+        /* Color of the favorite icon */
+        transition: transform 0.2s ease;
+      }
+
+      .favorite-icon:hover {
+        transform: scale(1.2);
+        /* Slightly enlarge the icon on hover */
+      }
+
+      #events-list div h3 {
+        margin: 5px 0;
+      }
+
+      #events-list div p {
+        margin: 2.5px 0;
+      }
+
+      #filters {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 20px;
+      }
+
+      #filters select {
+        margin: 0 7px;
+      }
+
+      .favorites-section {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+      }
+    </style>
+    <script
+      src="https://kit.fontawesome.com/8d7ded94c2.js"
+      crossorigin="anonymous"
+    ></script>
+  </head>
+
+  <body>
+    <!-- Filters Section -->
+    <div id="filters">
+      <select id="price-filter">
+        <option value="all">All Prices</option>
+        <option value="low">Below $20</option>
+        <option value="mid">Between $20 and $50</option>
+        <option value="high">Above $50</option>
+      </select>
+      <select id="location-filter">
+        <option value="all">All Locations</option>
+        <option value="New York">New York City</option>
+        <option value="San Francisco">San Francisco</option>
+        <option value="Los Angeles">Los Angeles</option>
+        <option value="Chicago">Chicago</option>
+      </select>
+      <select id="sort-order">
+        <option value="date-asc">Date (Ascending)</option>
+        <option value="date-desc">Date (Descending)</option>
+        <option value="price-asc">Price (Low to High)</option>
+        <option value="price-desc">Price (High to Low)</option>
+      </select>
+    </div>
+
+    <!-- Events Section -->
+    <div id="events-list"></div>
+
+    <!-- Favorites Section -->
+    <div class="favorites-section">
+      <h2>My Favorites</h2>
+      <ul id="favorites-list"></ul>
+    </div>
+    <script>
+      // Filtering
+      function filterEvents(events) {
+        const priceFilter = document.getElementById("price-filter").value;
+        const locationFilter = document.getElementById("location-filter").value;
+
+        return events.filter((event) => {
+          let priceMatch = true;
+          let locationMatch = true;
+
+          // Price filter
+          if (priceFilter === "low") priceMatch = event.price < 20;
+          else if (priceFilter === "mid")
+            priceMatch = event.price >= 20 && event.price <= 50;
+          else if (priceFilter === "high") priceMatch = event.price > 50;
+
+          // Location filter
+          if (locationFilter !== "all")
+            locationMatch = event.location.includes(locationFilter);
+
+          return priceMatch && locationMatch;
+        });
+      }
+
+      // Apply the filters
+      document
+        .getElementById("price-filter")
+        .addEventListener("change", () =>
+          updateEventList(document.getElementById("sort-order").value),
+        );
+      document
+        .getElementById("location-filter")
+        .addEventListener("change", () =>
+          updateEventList(document.getElementById("sort-order").value),
+        );
+
+      // cache events
+      let cachedEvents = null;
+      function fetchEvents() {
+        if (cachedEvents) {
+          return Promise.resolve(cachedEvents);
+        }
+
+        return fetch("http://localhost:3000/events")
+          .then((response) => response.json())
+          .then((events) => {
+            cachedEvents = events;
+            return events;
+          });
+      }
+
+      // update and render events
+      function updateEventList(sort) {
+        return fetchEvents().then((events) => {
+          const filteredEvents = filterEvents(events);
+          if (sort != undefined) {
+            renderEvents(sortEvents(filteredEvents, sort));
+          } else renderEvents(filteredEvents);
+        });
+      }
+
+      const favorites = JSON.parse(localStorage.getItem("favorites")) || [];
+
+      function toggleFavorite(eventId) {
+        const favoriteIndex = favorites.indexOf(eventId);
+        if (favoriteIndex === -1) {
+          favorites.push(eventId);
+        } else {
+          favorites.splice(favoriteIndex, 1);
+        }
+        localStorage.setItem("favorites", JSON.stringify(favorites));
+        renderFavorites();
+      }
+
+      function renderFavorites() {
+        const favoritesList = document.getElementById("favorites-list");
+        favoritesList.innerHTML = "";
+        favorites.forEach((eventId) => {
+          const event = cachedEvents.find((e) => e.id === eventId);
+          if (event) {
+            const favoriteItem = document.createElement("li");
+            favoriteItem.innerHTML = `${event.title} (${event.location})`;
+            favoritesList.appendChild(favoriteItem);
+          }
+        });
+      }
+
+      document.addEventListener("click", function (event) {
+        const target = event.target.closest(".favorite-icon");
+        if (target) {
+          const eventId = target.getAttribute("data-id");
+          toggleFavorite(eventId);
+          renderEvents(
+            sortEvents(
+              cachedEvents,
+              document.getElementById("sort-order").value,
+            ),
+          );
+        }
+      });
+
+      function renderEvents(events) {
+        const eventsList = document.getElementById("events-list");
+        eventsList.innerHTML = "";
+        // performance optimization using fragment
+        const fragment = document.createDocumentFragment();
+        events.forEach((event) => {
+          const isFav = favorites.includes(event.id);
+          const eventDiv = document.createElement("div");
+          eventDiv.style.cssText =
+            "display: flex; flex-direction: column; align-items: center; justify-content: center";
+          // img.loading = "lazy" to lazy load images. Works better in firefox, chrome is very eager unless the list is long
+          eventDiv.innerHTML = `
+            <img src="${event.imageUrl}" alt="${event.title}" loading="lazy" width="100%" height="50%">
+            <h3>${event.title}</h3>
+            <p>${event.date}</p>
+            <p>${event.location}</p>
+            <p>Ksh ${event.price}</p>
+            <span class="favorite-icon" data-id="${event.id}">
+              ${isFav ? '<i class="fa fa-heart" aria-hidden="true"></i>' : '<i class="fa fa-heart-o" aria-hidden="true"></i>'}
+            </span>
+            <button class="buy">Buy Now</button>
+          `;
+          fragment.appendChild(eventDiv);
+        });
+        eventsList.appendChild(fragment);
+      }
+
+      function parseDate(dateString) {
+        let year, final;
+        const initial = dateString.split("-");
+        if (initial.length === 1) return new Date(initial);
+
+        year = initial[1].split(", ");
+        final = initial[0].concat(`, ${year[1]}`);
+        return new Date(final);
+      }
+
+      function sortEvents(events, order) {
+        return events.sort((a, b) => {
+          const dateA = parseDate(a.date);
+          const dateB = parseDate(b.date);
+
+          if (order === "date-asc") {
+            return dateA - dateB;
+          } else if (order === "date-desc") {
+            return dateB - dateA;
+          } else if (order === "price-asc") {
+            return a.price - b.price;
+          } else if (order === "price-desc") {
+            return b.price - a.price;
+          }
+        });
+      }
+
+      document.getElementById("sort-order").addEventListener("change", () => {
+        fetch("http://localhost:3000/events")
+          .then((response) => response.json())
+          .then((events) => {
+            const sortedEvents = sortEvents(
+              events,
+              document.getElementById("sort-order").value,
+            );
+            renderEvents(sortedEvents);
+          });
+      });
+
+      document.addEventListener("DOMContentLoaded", function () {
+        updateEventList(document.getElementById("sort-order").value).then(
+          (res) => renderFavorites(),
+        );
+      });
+    </script>
+  </body>
+</html>
+
