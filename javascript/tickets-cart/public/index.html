@@ -1,0 +1,436 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Tickets</title>
+  <style>
+    /* Base grid for desktop (3 columns) */
+    #product-list {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      /* 3 columns */
+      gap: 20px;
+    }
+
+    /* For small screens (mobile), switch to 1 column */
+    @media only screen and (max-width: 600px) {
+      #product-list {
+        grid-template-columns: 1fr;
+        /* 1 column for smaller screens */
+      }
+    }
+
+    /* For medium screens (tablet), switch to 2 columns */
+    @media only screen and (min-width: 601px) and (max-width: 900px) {
+      #product-list {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    #product-list div {
+      border: 1px solid #ddd;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      transition: transform 0.3s ease;
+      height: 325px;
+    }
+
+    #product-list div:hover {
+      transform: translateY(-10px);
+    }
+
+    #product-list img {
+      width: 100%;
+      height: 50%;
+    }
+
+    .buy {
+      padding: 10px;
+      width: 100px;
+      color: white;
+      background-color: #090561;
+    }
+
+    .buy-fav {
+      padding: 5px;
+      color: white;
+      background-color: #090561;
+    }
+
+    .favorite-icon {
+      right: 0;
+      font-size: 24px;
+      cursor: pointer;
+      color: #ff0000;
+      transition: transform 0.2s ease;
+    }
+
+    .favorite-icon:hover {
+      transform: scale(1.2);
+    }
+
+    #product-list div h3 {
+      margin: 5px 0;
+    }
+
+    #product-list div p {
+      margin: 2.5px 0;
+    }
+
+    #filters {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+
+    #filters select {
+      margin: 0 7px;
+    }
+
+    .personalized {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20px;
+      align-items: start;
+    }
+
+    .favorites-section,
+    .cart-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      min-height: 100px;
+    }
+
+    .favorites-section h2,
+    .cart-section h2 {
+      margin-bottom: 10px;
+      width: 100%;
+      text-align: center;
+    }
+
+    .cart-actions button {
+      color: white;
+      background-color: #090561;
+    }
+
+    input[type=number]::-webkit-inner-spin-button,
+    input[type=number]::-webkit-outer-spin-button {
+      opacity: 1;
+    }
+  </style>
+  <script src="https://kit.fontawesome.com/8d7ded94c2.js" crossorigin="anonymous"></script>
+</head>
+
+<body>
+  <div id="filters">
+    <select id="price-filter">
+      <option value="all">All Prices</option>
+      <option value="low">Below $20</option>
+      <option value="mid">Between $20 and $50</option>
+      <option value="high">Above $50</option>
+    </select>
+    <select id="location-filter">
+      <option value="all">All Locations</option>
+      <option value="New York">New York City</option>
+      <option value="San Francisco">San Francisco</option>
+      <option value="Los Angeles">Los Angeles</option>
+      <option value="Chicago">Chicago</option>
+    </select>
+    <select id="sort-order">
+      <option value="date-asc">Date (Ascending)</option>
+      <option value="date-desc">Date (Descending)</option>
+      <option value="price-asc">Price (Low to High)</option>
+      <option value="price-desc">Price (High to Low)</option>
+    </select>
+  </div>
+
+  <div id="product-list"></div>
+
+  <div class="personalized">
+    <div class="favorites-section">
+      <h2>My Favorites</h2>
+      <ul id="favorites-list"></ul>
+    </div>
+    <div class="cart-section">
+      <h2>My Cart <span id="cart-total">: Ksh 0</span></h2>
+      <ul id="cart-list"></ul>
+    </div>
+  </div>
+
+  <script>
+    function filterEvents(events) {
+      const priceFilter = document.getElementById("price-filter").value;
+      const locationFilter = document.getElementById("location-filter").value;
+
+      return events.filter((event) => {
+        let priceMatch = true;
+        let locationMatch = true;
+
+        // Price filter
+        if (priceFilter === "low") priceMatch = event.price < 20;
+        else if (priceFilter === "mid")
+          priceMatch = event.price >= 20 && event.price <= 50;
+        else if (priceFilter === "high") priceMatch = event.price > 50;
+
+        // Location filter
+        if (locationFilter !== "all")
+          locationMatch = event.location.includes(locationFilter);
+
+        return priceMatch && locationMatch;
+      });
+    }
+
+    // Apply the filters
+    document
+      .getElementById("price-filter")
+      .addEventListener("change", () =>
+        updateEventList(document.getElementById("sort-order").value),
+      );
+    document
+      .getElementById("location-filter")
+      .addEventListener("change", () =>
+        updateEventList(document.getElementById("sort-order").value),
+      );
+
+    let products,
+      cart = JSON.parse(localStorage.getItem("cart")) || [];
+    async function addProducts() {
+      return fetch("http://localhost:3000/events")
+        .then((response) => response.json())
+        .then((events) => {
+          products = events;
+          return events;
+        })
+        .catch((err) => {
+          console.log(err);
+          throw new Error(err);
+        });
+    }
+
+    function addToCart(product) {
+      const exists = cart.find((item) => item.id === product.id);
+
+      if (exists) {
+        exists.quantity++;
+      } else {
+        product.quantity = 1;
+        cart = [...cart, product];
+      }
+
+      localStorage.setItem("cart", JSON.stringify(cart));
+      renderCart()
+    }
+
+    function deleteFromCart(productId) {
+      cart = cart.filter((product) => product.id !== productId);
+      localStorage.setItem("cart", JSON.stringify(cart));
+      renderCart();
+    }
+
+    function increaseQuantity(productId) {
+      const product = cart.find((item) => item.id === productId);
+      if (product) {
+        product.quantity++;
+        localStorage.setItem("cart", JSON.stringify(cart));
+        renderCart();
+      }
+    }
+
+    function reduceQuantity(productId) {
+      const product = cart.find((item) => item.id === productId);
+      if (product && product.quantity > 1) {
+        product.quantity--;
+      } else if (product && product.quantity === 1) {
+        deleteFromCart(productId);
+      }
+      localStorage.setItem("cart", JSON.stringify(cart));
+      renderCart();
+    }
+
+    function editInCart(productId, newQuantity) {
+      const product = cart.find(item => item.id === productId);
+      if (product && newQuantity > 0) {
+        product.quantity = newQuantity;
+        localStorage.setItem("cart", JSON.stringify(cart));
+        renderCart();
+      } else if (newQuantity === 0) {
+        deleteFromCart(productId);
+      }
+    }
+
+    function renderCart() {
+      const cartList = document.getElementById("cart-list");
+      cartList.innerHTML = "";
+      let total = 0;
+
+      const fragment = document.createDocumentFragment();
+      cart.forEach(product => {
+        const itemDiv = document.createElement("div");
+        itemDiv.style.cssText = "display: flex; height: 100px; margin-bottom: 10px;";
+        itemDiv.innerHTML = `
+          <img src="${product.imageUrl}" alt="${product.title}" loading="lazy" width="100px" height="100%;">
+          <div style="display: flex; flex-direction: column; width: 350px; justify-content: center; margin-left: 10px">
+            <span><b>${product.title}</b></span>
+            <span>${product.location}</span>
+            <span>Ksh${product.price}</span>
+          </div>
+          <div class="cart-actions" style="display: flex; align-items: center; gap: 10px">
+            <input type="number" min="1" value="${product.quantity}" 
+              onchange="editInCart(${product.id}, this.value)" style="width: 30px;" />
+            <button onclick="increaseQuantity(${product.id})">+</button>
+            <button onclick="reduceQuantity(${product.id})">-</button>
+          </div>
+          `;
+        fragment.appendChild(itemDiv);
+        total += product.price * product.quantity;
+      });
+      cartList.append(fragment);
+
+      document.getElementById("cart-total").innerText = `: Ksh ${total}`;
+    }
+
+    // update and render events
+    function updateEventList(sort) {
+      return addProducts().then((events) => {
+        const filteredEvents = filterEvents(events);
+        if (sort != undefined) {
+          populateProducts(sortEvents(filteredEvents, sort));
+        } else populateProducts(filteredEvents);
+      });
+    }
+
+    const favorites = JSON.parse(localStorage.getItem("favorites")) || [];
+
+    function toggleFavorite(eventId) {
+      const favoriteIndex = favorites.indexOf(eventId);
+      if (favoriteIndex === -1) {
+        favorites.push(eventId);
+      } else {
+        favorites.splice(favoriteIndex, 1);
+      }
+      localStorage.setItem("favorites", JSON.stringify(favorites));
+      renderFavorites();
+    }
+
+    function renderFavorites() {
+      const favoritesList = document.getElementById("favorites-list");
+      favoritesList.innerHTML = "";
+      const fragment = document.createDocumentFragment();
+      favorites.forEach((eventId) => {
+        const event = products.find((e) => e.id === eventId);
+        if (event) {
+          const favoritesDiv = document.createElement("div");
+          favoritesDiv.style.cssText = "display: flex; height: 100px; margin-bottom: 10px;";
+          favoritesDiv.innerHTML = `
+            <img src="${event.imageUrl}" alt="${event.title}" loading="lazy" width="100px" height="100%;">
+            <div style="display: flex; flex-direction: column; width: 350px; justify-content: center; margin-left: 10px">
+              <span><b>${event.title}</b></span>
+              <span>${event.location}</span>
+              <span>Ksh${event.price}</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px">
+              <span class="favorite-icon" data-id="${event.id}">
+               <i class="fa fa-heart" aria-hidden="true"></i>
+              </span>
+              <button class="buy-fav" onclick="addToCart({id: ${event.id}, title: '${event.title}', price: ${event.price}, location: '${event.location}', imageUrl: '${event.imageUrl}'})">Buy Now</button>
+            </div>
+            `;
+          fragment.appendChild(favoritesDiv);
+        }
+      });
+      favoritesList.append(fragment);
+    };
+
+    document.addEventListener("click", function (event) {
+      const target = event.target.closest(".favorite-icon");
+      if (target) {
+        const eventId = target.getAttribute("data-id");
+        toggleFavorite(eventId);
+        populateProducts(
+          sortEvents(products, document.getElementById("sort-order").value),
+        );
+      }
+    });
+
+    function populateProducts(products) {
+      const productList = document.getElementById("product-list");
+      productList.innerHTML = "";
+      // performance optimization using fragment
+      const fragment = document.createDocumentFragment();
+      products.forEach((product) => {
+        const isFav = favorites.includes(product.id);
+        const productDiv = document.createElement("div");
+        productDiv.style.cssText =
+          "display: flex; flex-direction: column; align-items: center; justify-content: center";
+        // img.loading = "lazy" to lazy load images. Works better in firefox, chrome is very eager unless the list is long
+        productDiv.innerHTML = `
+            <img src="${product.imageUrl}" alt="${product.title}" loading="lazy" width="100%" height="50%">
+            <h3>${product.title}</h3>
+            <p>${product.date}</p>
+            <p>${product.location}</p>
+            <p>Ksh ${product.price}</p>
+            <span class="favorite-icon" data-id="${product.id}">
+              ${isFav ? '<i class="fa fa-heart" aria-hidden="true"></i>' : '<i class="fa fa-heart-o" aria-hidden="true"></i>'}
+            </span>
+            <button class="buy" onclick="addToCart({id: ${product.id}, title: '${product.title}', price: ${product.price}, location: '${product.location}', imageUrl: '${product.imageUrl}'})">Buy Now</button>
+          `;
+        fragment.appendChild(productDiv);
+      });
+      productList.appendChild(fragment);
+    }
+
+    function parseDate(dateString) {
+      let year, final;
+      const initial = dateString.split("-");
+      if (initial.length === 1) return new Date(initial);
+
+      year = initial[1].split(", ");
+      final = initial[0].concat(`, ${year[1]}`);
+      return new Date(final);
+    }
+
+    function sortEvents(events, order) {
+      return events.sort((a, b) => {
+        const dateA = parseDate(a.date);
+        const dateB = parseDate(b.date);
+
+        if (order === "date-asc") {
+          return dateA - dateB;
+        } else if (order === "date-desc") {
+          return dateB - dateA;
+        } else if (order === "price-asc") {
+          return a.price - b.price;
+        } else if (order === "price-desc") {
+          return b.price - a.price;
+        }
+      });
+    }
+
+    document.getElementById("sort-order").addEventListener("change", () => {
+      fetch("http://localhost:3000/events")
+        .then((response) => response.json())
+        .then((events) => {
+          const sortedEvents = sortEvents(
+            events,
+            document.getElementById("sort-order").value,
+          );
+          populateProducts(sortedEvents);
+        });
+    });
+
+    document.addEventListener("DOMContentLoaded", function () {
+      updateEventList(document.getElementById("sort-order").value).then(
+        (res) => {
+          renderFavorites()
+          renderCart()
+        },
+      );
+    });
+  </script>
+</body>
+
+</html>
