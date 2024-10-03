@@ -50,14 +50,17 @@ Go to **Index.js** file and **import the LogEvent function** exported from LogEv
 **remember** the message is what was passed **as a parameter** from the function LogEvent function
 
 USE THIS WAY TO CREATE A FILE AND CHECK IF IT EXISTS OR NOT
-const fs = require('node:fs');
 
-const folderName = '/Users/joe/test';
+```javascript
+const fs = require("node:fs");
+
+const folderName = "/Users/joe/test";
 
 try {
-if (!fs.existsSync(folderName)) {
-fs.mkdirSync(folderName);
-}
+  if (!fs.existsSync(folderName)) {
+    fs.mkdirSync(folderName);
+  }
 } catch (err) {
-console.error(err);
+  console.error(err);
 }
+```
