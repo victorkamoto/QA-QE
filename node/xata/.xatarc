@@ -1,0 +1,6 @@
+{
+  "databaseURL": "https://Victor-Kamoto-s-workspace-ekrtjn.us-east-1.xata.sh/db/xata",
+  "codegen": {
+    "output": "src/xata.ts"
+  }
+}
