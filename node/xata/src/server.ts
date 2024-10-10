@@ -40,35 +40,35 @@ app.get(
     const err = validationResult(req);
     if (!err.isEmpty()) {
       res.status(400).json({
-        success: true,
+        success: false,
         message: "Validation error!",
         errors: err.array(),
       });
-    }
+    } else {
+      const { id } = matchedData<{
+        id: string;
+      }>(req);
 
-    const { id } = matchedData<{
-      id: string;
-    }>(req);
+      try {
+        const record = await xata.db.users.read(id);
 
-    try {
-      const record = await xata.db.users.read(id);
+        if (!record) {
+          res.status(404).json({
+            success: false,
+            message: "Not Found",
+          });
+        }
 
-      if (!record) {
-        res.status(404).json({
+        res.status(200).json({
+          success: true,
+          payload: record,
+        });
+      } catch (error) {
+        res.status(500).json({
           success: false,
-          message: "Not Found",
+          error,
         });
       }
-
-      res.status(200).json({
-        success: true,
-        payload: record,
-      });
-    } catch (error) {
-      res.status(500).json({
-        success: false,
-        error,
-      });
     }
   },
 );
@@ -80,31 +80,31 @@ app.post(
     const err = validationResult(req);
     if (!err.isEmpty()) {
       res.status(400).json({
-        success: true,
+        success: false,
         message: "Validation error!",
         errors: err.array(),
       });
-    }
+    } else {
+      const { userName, displayName } = matchedData<{
+        userName: string;
+        displayName: string;
+      }>(req);
+      try {
+        const record = await xata.db.users.create({
+          userName,
+          displayName,
+        });
 
-    const { userName, displayName } = matchedData<{
-      userName: string;
-      displayName: string;
-    }>(req);
-    try {
-      const record = await xata.db.users.create({
-        userName,
-        displayName,
-      });
-
-      res.status(201).json({
-        success: true,
-        payload: record,
-      });
-    } catch (error) {
-      res.status(500).json({
-        success: false,
-        error,
-      });
+        res.status(201).json({
+          success: true,
+          payload: record,
+        });
+      } catch (error) {
+        res.status(500).json({
+          success: false,
+          error,
+        });
+      }
     }
   },
 );
@@ -117,40 +117,49 @@ app.put(
     const err = validationResult(req);
     if (!err.isEmpty()) {
       res.status(400).json({
-        success: true,
+        success: false,
         message: "Validation error!",
         errors: err.array(),
       });
-    }
+    } else {
+      const { id, userName, displayName } = matchedData<{
+        id: string;
+        userName: string;
+        displayName: string;
+      }>(req);
 
-    const { id, userName, displayName } = matchedData<{
-      id: string;
-      userName: string;
-      displayName: string;
-    }>(req);
+      try {
+        const exists = await xata.db.users.read(id);
 
-    try {
-      const record = await xata.db.users.createOrReplace(id, {
-        userName,
-        displayName,
-      });
+        if (!exists) {
+          res.status(404).json({
+            success: true,
+            message: "Not found",
+          });
+        } else {
+          const record = await xata.db.users.createOrReplace(id, {
+            userName,
+            displayName,
+          });
 
-      if (!record) {
-        res.status(404).json({
+          if (!record) {
+            res.status(404).json({
+              success: false,
+              message: "Not Found",
+            });
+          }
+
+          res.status(200).json({
+            success: true,
+            payload: record,
+          });
+        }
+      } catch (error) {
+        res.status(500).json({
           success: false,
-          message: "Not Found",
+          error,
         });
       }
-
-      res.status(200).json({
-        success: true,
-        payload: record,
-      });
-    } catch (error) {
-      res.status(500).json({
-        success: false,
-        error,
-      });
     }
   },
 );
@@ -163,37 +172,40 @@ app.patch(
     const err = validationResult(req);
     if (!err.isEmpty()) {
       res.status(400).json({
-        success: true,
+        success: false,
         message: "Validation error!",
         errors: err.array(),
       });
-    }
+    } else {
+      const { id, userName, displayName } = matchedData<{
+        id: string;
+        userName: string;
+        displayName: string;
+      }>(req);
 
-    const { id, userName, displayName } = matchedData<{
-      id: string;
-      userName: string;
-      displayName: string;
-    }>(req);
+      try {
+        const record = await xata.db.users.update(id, {
+          userName,
+          displayName,
+        });
 
-    try {
-      const record = await xata.db.users.update(id, { userName, displayName });
+        if (!record) {
+          res.status(404).json({
+            success: false,
+            message: "Not Found",
+          });
+        }
 
-      if (!record) {
-        res.status(404).json({
+        res.status(200).json({
+          success: true,
+          payload: record,
+        });
+      } catch (error) {
+        res.status(500).json({
           success: false,
-          message: "Not Found",
+          error,
         });
       }
-
-      res.status(200).json({
-        success: true,
-        payload: record,
-      });
-    } catch (error) {
-      res.status(500).json({
-        success: false,
-        error,
-      });
     }
   },
 );
@@ -205,35 +217,35 @@ app.delete(
     const err = validationResult(req);
     if (!err.isEmpty()) {
       res.status(400).json({
-        success: true,
+        success: false,
         message: "Validation error!",
         errors: err.array(),
       });
-    }
+    } else {
+      const { id } = matchedData<{
+        id: string;
+      }>(req);
 
-    const { id } = matchedData<{
-      id: string;
-    }>(req);
+      try {
+        const record = await xata.db.users.delete(id);
 
-    try {
-      const record = await xata.db.users.delete(id);
+        if (!record) {
+          res.status(404).json({
+            success: false,
+            message: "Not Found",
+          });
+        }
 
-      if (!record) {
-        res.status(404).json({
+        res.status(200).json({
+          success: true,
+          payload: record,
+        });
+      } catch (error) {
+        res.status(500).json({
           success: false,
-          message: "Not Found",
+          error,
         });
       }
-
-      res.status(200).json({
-        success: true,
-        payload: record,
-      });
-    } catch (error) {
-      res.status(500).json({
-        success: false,
-        error,
-      });
     }
   },
 );
