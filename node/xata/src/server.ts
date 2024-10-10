@@ -133,7 +133,7 @@ app.put(
 
         if (!exists) {
           res.status(404).json({
-            success: true,
+            success: false,
             message: "Not found",
           });
         } else {
