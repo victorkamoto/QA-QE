@@ -57,12 +57,12 @@ app.get(
             success: false,
             message: "Not Found",
           });
+        } else {
+          res.status(200).json({
+            success: true,
+            payload: record,
+          });
         }
-
-        res.status(200).json({
-          success: true,
-          payload: record,
-        });
       } catch (error) {
         res.status(500).json({
           success: false,
@@ -142,13 +142,6 @@ app.put(
             displayName,
           });
 
-          if (!record) {
-            res.status(404).json({
-              success: false,
-              message: "Not Found",
-            });
-          }
-
           res.status(200).json({
             success: true,
             payload: record,
@@ -184,22 +177,29 @@ app.patch(
       }>(req);
 
       try {
-        const record = await xata.db.users.update(id, {
-          userName,
-          displayName,
-        });
+        const exists = await xata.db.users.read(id);
 
-        if (!record) {
+        if (!exists) {
           res.status(404).json({
             success: false,
             message: "Not Found",
           });
-        }
+        } else {
+          const record = await exists.update(
+            {
+              userName,
+              displayName,
+            },
+            {
+              ifVersion: exists.xata_version,
+            },
+          );
 
-        res.status(200).json({
-          success: true,
-          payload: record,
-        });
+          res.status(200).json({
+            success: true,
+            payload: record,
+          });
+        }
       } catch (error) {
         res.status(500).json({
           success: false,
